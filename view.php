@@ -54,7 +54,7 @@
     {
       // Fetch one and one row
       echo "<TABLE id='c4ytable'>";
-      echo "<TR><TH>ID.</TH><TH>Nhiệt Độ (C)</TH><TH>Nhiệt Độ (F)</TH><TH>Độ Ẩm</TH><TH>Date</TH><TH>Time</TH></TR>";
+      echo "<TR><TH>ID.</TH><TH>Nhiệt Độ (C)</TH><TH>Độ Ẩm</TH><TH>Độ Ẩm Đất</TH><TH>Date</TH><TH>Time</TH></TR>";
       while ($row=mysqli_fetch_row($result))
       {
         echo "<TR>";
