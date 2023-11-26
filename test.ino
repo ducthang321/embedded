@@ -1,149 +1,93 @@
 #include <ESP8266WiFi.h>
-
-#include "DHT.h"
+#include <WiFiClient.h> 
+#include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
-
+#include "DHT.h"
 #define DHTTYPE DHT11
-const char* serverUrl = "192.168.1.42/getdemo.php";
-const char* ssid = "COFFEE 24 HOURS";
-
-const char* password = "66668888";
-
-WiFiServer server(80);
-
+#define RELAY_PIN D1
+/* Set these to your desired credentials. */
+const char *ssid = "COFFEE 24 HOURS";  //ENTER YOUR WIFI SETTINGS
+const char *password = "66668888";
 const int DHTPin = 5;
-
+WiFiServer server(80);
 DHT dht(DHTPin, DHTTYPE);
+int value, real_value, percent;
+//Web/Server address to read/write from 
 
-static char celsiusTemp[7];
+//=======================================================================
+//                    Power on setup
+//=======================================================================
 
-static char fahrenheitTemp[7];
-
-static char humidityTemp[7];
-
-void setup()
-
-{
-
-  Serial.begin(115200);
-
+void setup() {
   delay(10);
-
+  pinMode(13, INPUT_PULLUP);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH);
   dht.begin();
-
-  Serial.println();
-
-  Serial.print("Dang ket noi den mang… ");
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-
-  {
-
-    delay(500);
-
-    Serial.print(".");
-
-  }
-
+  Serial.begin(115200);
+  WiFi.mode(WIFI_OFF);        //Prevents reconnection issue (taking too long to connect)
+  delay(1000);
+  WiFi.mode(WIFI_STA);        //This line hides the viewing of ESP as wifi hotspot
+  
+  WiFi.begin(ssid, password);     //Connect to your WiFi router
   Serial.println("");
 
-  Serial.println("Da ket noi WiFi");
+  Serial.print("Connecting");
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
 
-  server.begin();
-
-  Serial.println("Web server dang khoi dong. Vui long doi dia chi IP…");
-
-  delay(1000);
-
-  Serial.println(WiFi.localIP());
-
+  //If connection successful show IP address in serial monitor
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 }
 
-void loop()
-
-{
-
-  WiFiClient client = server.available();
-
-  if (client)
-
-  {
-
-    Serial.println("Co client moi");
-
-    boolean blank_line = true;
-
-    while (client.connected())
-
-    {
-
-      if (client.available())
-
-      {
-
-        char c = client.read();
-
-        if (c == '\n' && blank_line)
-
-        {
-
-          float h = dht.readHumidity();
-
-          float t = dht.readTemperature();
-
-          float f = dht.readTemperature(true);
-
-          if (isnan(h) || isnan(t) || isnan(f))
-
-          {
-
-            Serial.println("Khong the doc du lieu tu cam bien DHT!");
-
-            strcpy(celsiusTemp, "Failed");
-
-            strcpy(fahrenheitTemp, "Failed");
-
-            strcpy(humidityTemp, "Failed");
-
-          }
-
-          else
-
-          {
-
-            float hic = dht.computeHeatIndex(t, h, false);
-
-            dtostrf(hic, 6, 2, celsiusTemp);
-
-            float hif = dht.computeHeatIndex(f, h);
-
-            dtostrf(hif, 6, 2, fahrenheitTemp);
-
-            dtostrf(h, 6, 2, humidityTemp);
-
-          }
-
-  HTTPClient http;
-  http.begin(client, serverUrl);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  String data = "temperature_C=" + String(celsiusTemp) +
-                "&temperature_F=" + String(fahrenheitTemp) +
-                "&humidity=" + String(humidityTemp);
-  int httpResponseCode = http.POST(data);
-  if (httpResponseCode > 0) {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-  } else {
-    Serial.print("Error during HTTP request: ");
-    Serial.println(httpResponseCode);
+//=======================================================================
+//                    Main Program Loop
+//=======================================================================
+void loop() {
+  //-------------------DOAMDAT-----------------------
+  for(int i = 0; i<=9; i++){
+    real_value += analogRead(A0);
+  };
+  value = real_value/10;
+  real_value = 0;
+  percent = map(value, 340, 1024, 0, 100); // 340 khi nhung nuoc, nen do am se la 100% 
+  percent = 100 - percent ;
+  if (percent < 40 ){
+    digitalWrite(RELAY_PIN, LOW);
   }
-  http.end();
-
-  delay(5000); // Delay for 5 seconds before sending the next data
-        }
-      }
-    }
+  else {
+    digitalWrite(RELAY_PIN, HIGH);
   }
+
+  HTTPClient http;    //Declare object of class HTTPClient
+
+  float humidity = dht.readHumidity();
+  float temperatureC = dht.readTemperature();
+  //float temperatureF = dht.toFahrenheit(temperatureC);
+
+  //POST Data
+  //getData = "nhietdoc=" + String(temperatureC) + "nhietdof=" + String(temperatureF) + "doam=" + String(humidity) ;  //Note "?" added at front
+ String postData = "?nhietdo=" + String(temperatureC) + "&doam=" + String(humidity) + "&doamdat=" + String(percent);
+
+  String link = "http://192.168.1.42/getdemo.php";
+
+  //http.begin(WiFiClient(),link);     //Specify request destination
+  WiFiClient client;
+  http.begin(client, link);
+  int httpCode = http.POST(postData);            //Send the request
+  String payload = http.getString();    //Get the response payload
+
+  Serial.println(httpCode);   //Print HTTP return code
+  Serial.println(payload);    //Print request response payload
+   
+  http.end();  //Close connection
+  
+  delay(180000);  //GET Data at every 60 seconds
 }
