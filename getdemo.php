@@ -19,15 +19,15 @@
     //echo " Date:".$d."<BR>";
     $t = date("H:i:s");
 
-    if($_SERVER["REQUEST_METHOD"] == "POST")
+    if(!empty($_GET['nhietdo']) && !empty($_GET['doam']))
     {
-    	$nhietdoc = $_GET['nhietdoc'];
-    	$nhietdof = $_GET['nhietdof'];
-        $doam = $_GET['humidityTemp'];
+    	$nhietdo = $_GET['nhietdo'];
+    	$doam = $_GET['doam'];
+        $doamdat = $_GET['doamdat'];
 
-	    $sql = "INSERT INTO logs (nhietdoc,nhietdof,doam, Date, Time)
+	    $sql = "INSERT INTO logs (doam, nhietdo,doamdat, Date, Time)
 		
-		VALUES ('".$nhietdoc."','".$nhietdof."','".$doam."', '".$d."', '".$t."')";
+		VALUES ('".$doam."', '".$nhietdo."','".$doamdat."', '".$d."', '".$t."')";
 
 		if ($conn->query($sql) === TRUE) {
 		    echo "OK";
