@@ -4,7 +4,7 @@
     $servername = "localhost";
     $username = "root";
     $password = "ducthang";
-    $dbname = "espdemo";
+    $dbname = "database_iot";
 
     // Create connection
     $conn = new mysqli($servername, $username, $password, $dbname);
@@ -21,13 +21,14 @@
 
     if(!empty($_POST['nhietdo']) && !empty($_POST['doam']))
     {
+        $sensor_id = $_POST['sensor_id'];
     	$nhietdo = $_POST['nhietdo'];
     	$doam = $_POST['doam'];
         $doamdat = $_POST['doamdat'];
 
-	    $sql = "INSERT INTO logs (doam, nhietdo,doamdat, Date, Time)
+	    $sql = "INSERT INTO thongso (sensor_id ,doam, nhietdo,doamdat, Date, Time)
 		
-		VALUES ('".$doam."', '".$nhietdo."','".$doamdat."', '".$d."', '".$t."')";
+		VALUES ('".$sensor_id."','".$doam."', '".$nhietdo."','".$doamdat."', '".$d."', '".$t."')";
 
 		if ($conn->query($sql) === TRUE) {
 		    echo "CẬP NHẬT THÀNH CÔNG";
